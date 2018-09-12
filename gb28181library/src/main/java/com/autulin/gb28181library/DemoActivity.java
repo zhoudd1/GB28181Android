@@ -34,7 +34,15 @@ public class DemoActivity extends AppCompatActivity implements
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mMediaRecorder != null) mMediaRecorder.startMux();
+                if (mMediaRecorder != null) {
+                    if (!mMediaRecorder.mRecording) {
+                        mButton.setText("点击结束");
+                        mMediaRecorder.startMux();
+                    } else{
+                        mButton.setText("点击开始");
+                        mMediaRecorder.endMux();
+                    }
+                }
             }
         });
     }

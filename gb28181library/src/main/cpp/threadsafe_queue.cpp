@@ -74,6 +74,15 @@ public:
     bool empty() const {
         return data_queue.empty();
     }
+
+    int size() {
+        return data_queue.size();
+    }
+
+    void clear() {
+        std::queue<T> empty;
+        swap(empty, data_queue);
+    }
 };
 
 #endif //JIANXIFFMPEG_THREADSAFE_QUEUE_CPP

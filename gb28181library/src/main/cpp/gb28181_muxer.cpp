@@ -9,42 +9,6 @@
 GB28181Muxer::GB28181Muxer(UserArguments *arg) : arguments(arg) {
 }
 
-/**
- * 结束编码时刷出还在编码器里面的帧
- * @param fmt_ctx
- * @param stream_index
- * @return
- */
-int GB28181Muxer::flush_encoder(AVFormatContext *fmt_ctx, unsigned int stream_index) {
-    int ret;
-    int got_frame;
-    AVPacket enc_pkt;
-    if (!(fmt_ctx->streams[stream_index]->codec->codec->capabilities &
-          CODEC_CAP_DELAY))
-        return 0;
-    while (1) {
-        enc_pkt.data = NULL;
-        enc_pkt.size = 0;
-        av_init_packet(&enc_pkt);
-        ret = avcodec_encode_video2(fmt_ctx->streams[stream_index]->codec, &enc_pkt,
-                                    NULL, &got_frame);
-        av_frame_free(NULL);
-        if (ret < 0)
-            break;
-        if (!got_frame) {
-            ret = 0;
-            break;
-        }
-        LOGI("_Flush Encoder: Succeed to encode 1 frame video!\tsize:%5d\n",
-             enc_pkt.size);
-        /* mux encoded frame */
-        ret = av_write_frame(fmt_ctx, &enc_pkt);
-        if (ret < 0)
-            break;
-    }
-
-    return ret;
-}
 
 /**
  * 初始化视频编码器
@@ -187,12 +151,12 @@ void *GB28181Muxer::startMux(void *obj) {
     GB28181Muxer *gb28181Muxer = (GB28181Muxer *) obj;
     while (!gb28181Muxer->is_end || !gb28181Muxer->video_queue.empty()) {
         if (gb28181Muxer->is_release) {
+            LOGE("release data")
             //Clean
             if (gb28181Muxer->video_st) {
                 avcodec_close(gb28181Muxer->video_st->codec);
                 av_free(gb28181Muxer->pFrame);
             }
-            avio_close(gb28181Muxer->pFormatCtx->pb);
             avformat_free_context(gb28181Muxer->pFormatCtx);
             delete gb28181Muxer;
             return 0;
@@ -355,14 +319,12 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
  * @return
  */
 int GB28181Muxer::encodeEnd() {
-    //Flush Encoder
-    int ret_1 = flush_encoder(pFormatCtx, 0);
-    if (ret_1 < 0) {
-        LOGE("Flushing encoder failed\n");
-        return -1;
-    }
 
     closeOutput();
+
+    LOGE("aduio queue left num: %d, video queue left num: %d", audio_queue.size(), video_queue.size());
+    audio_queue.clear();
+    video_queue.clear();
 
     //Clean
     if (video_st) {
@@ -370,7 +332,7 @@ int GB28181Muxer::encodeEnd() {
         av_free(pFrame);
 //        av_free(picture_buf);
     }
-    avio_close(pFormatCtx->pb);
+//    avio_close(pFormatCtx->pb);
     avformat_free_context(pFormatCtx);
     LOGI("视频编码结束")
     return 1;
@@ -380,6 +342,7 @@ int GB28181Muxer::encodeEnd() {
  * 用户中断
  */
 void GB28181Muxer::user_end() {
+    LOGE("call user end");
     is_end = END_STATE;
 }
 

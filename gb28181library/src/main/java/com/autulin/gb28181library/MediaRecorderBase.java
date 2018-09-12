@@ -722,6 +722,10 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
         } else {
             path = dcim + FILE_DIR_DEFAULT;
         }
+        File file = new File(path);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
         mediaOutput = new MediaOutput("", 0, path, fileName, JNIBridge.FILE);
         return mediaOutput;
     }

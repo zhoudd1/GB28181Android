@@ -11,6 +11,7 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
      */
     @Override
     public void endMux() {
+        Log.e("MediaRecorderNative", "endMux: ");
         super.endMux();
         JNIBridge.endMux();
     }

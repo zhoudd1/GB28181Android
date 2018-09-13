@@ -410,6 +410,11 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
 
     public void endMux() {
         mRecording = false;
+        // 停止音频录制
+        if (mAudioCollector != null) {
+            mAudioCollector.interrupt();
+            mAudioCollector = null;
+        }
     }
 
 
@@ -430,6 +435,15 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
             return;
         List<Integer> rates = mParameters.getSupportedPreviewFrameRates();
         Log.e("MedidaRecord", "支持的帧率有 "+ rates.toString());
+        StringBuilder sb = new StringBuilder();
+        for (Size size:
+             mSupportedPreviewSizes) {
+            sb.append(size.width);
+            sb.append('x');
+            sb.append(size.height);
+            sb.append(',');
+        }
+        Log.e("MedidaRecord", "支持的预览大小有（宽x高）:"+ sb.toString());
         if (rates != null) {
             if (rates.contains(MAX_FRAME_RATE)) {
                 mFrameRate = MAX_FRAME_RATE;
@@ -471,6 +485,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
             SMALL_VIDEO_HEIGHT = 480;
         }
         mParameters.setPreviewSize(mSupportedPreviewWidth, SMALL_VIDEO_HEIGHT);
+        Log.e("MedidaRecord", "最终选择预览大小："+ mSupportedPreviewWidth+"x"+SMALL_VIDEO_HEIGHT);
 
         // 设置输出视频流尺寸，采样率
         mParameters.setPreviewFormat(ImageFormat.YV12);
@@ -606,7 +621,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
      */
     public void release() {
 
-        JNIBridge.release();
+        JNIBridge.endMux();
         // 停止视频预览
         stopPreview();
         // 停止音频录制

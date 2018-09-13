@@ -16,8 +16,8 @@ typedef struct UserArguments {
     int in_height; //输入高度
     int out_height; //输出高度
     int out_width; //输出宽度
-    int frame_rate; //视频帧率控制
-    long long video_bit_rate; //视频比特率控制
+    int video_frame_rate; //视频帧率控制
+    int64_t video_bit_rate; //视频比特率控制
     int v_custom_format; //一些滤镜操作控制
     int a_frame_len;
     JNIEnv *env; //env全局指针

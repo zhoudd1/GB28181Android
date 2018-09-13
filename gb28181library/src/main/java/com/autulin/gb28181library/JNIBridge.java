@@ -74,6 +74,4 @@ public class JNIBridge {
 
     public static native int endMux();
 
-    public static native int release();
-
 }

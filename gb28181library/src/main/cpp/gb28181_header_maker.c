@@ -17,9 +17,9 @@
  *           s64Src [in] 时间戳
  *@return:   0 success, others failed
 */
-int gb28181_make_ps_header(char *pData, unsigned long long s64Scr)
+int gb28181_make_ps_header(char *pData, int64_t s64Scr)
 {
-    unsigned long long lScrExt = 0; //(s64Scr) % 100;
+    int64_t lScrExt = 0; //(s64Scr) % 100;
 //    s64Scr = s64Scr * 3600; // / 100; // 90000/fps
     // 这里除以100是由于sdp协议返回的video的频率是90000，帧率是25帧/s，所以每次递增的量是3600,
     // 所以实际你应该根据你自己编码里的时间戳来处理以保证时间戳的增量为3600即可，
@@ -141,7 +141,7 @@ int gb28181_make_psm_header(char *pData)
  *           dts        [in]
  *@return:   0 success, others failed
 */
-int gb28181_make_pes_header(char *pData, int stream_id, int payload_len, unsigned long long pts, unsigned long long dts)
+int gb28181_make_pes_header(char *pData, int stream_id, int payload_len, int64_t pts, int64_t dts)
 {
 
     bits_buffer_t  	bitsBuffer;
@@ -196,7 +196,7 @@ int gb28181_make_pes_header(char *pData, int stream_id, int payload_len, unsigne
  *@param :   pData  [in] 填充ps头数据的地址
  *@return:   0 success, others failed
 */
-int gb28181_make_rtp_header(char *pData, int seqNum, unsigned long long timestamp, int ssrc )
+int gb28181_make_rtp_header(char *pData, int seqNum, int64_t timestamp, int ssrc )
 {
 
     bits_buffer_t  	bitsBuffer;

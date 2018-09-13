@@ -86,7 +86,8 @@ public class DemoActivity extends AppCompatActivity implements
         mMediaRecorder.setOnPreparedListener(this);
 
         // 设置输出
-        String fileName = String.valueOf(System.currentTimeMillis());
+//        String fileName = String.valueOf(System.currentTimeMillis());
+        String fileName = "tttttt";
         mediaOutput = mMediaRecorder.setFileOutPut(fileName);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());

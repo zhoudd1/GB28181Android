@@ -27,9 +27,7 @@ public:
 
     void user_end();
 
-    void release();
-
-    int encodeEnd();
+    int endMux();
 
     void custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *picture_buf,
                        int in_y_size,
@@ -60,7 +58,7 @@ private:
     int out_y_size;
     int audioFrameCnt = 0;
     int videoFrameCnt = 0;
-    long startTime = 0;
+    int64_t startTime = 0;
 
     ofstream fout;
 

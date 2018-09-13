@@ -55,7 +55,7 @@ Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, js
     strcat(arguments->media_path, MEDIA_FORMAT);
 
     arguments->video_bit_rate = bit_rate;
-    arguments->frame_rate = frameRate;
+    arguments->video_frame_rate = frameRate;
     arguments->in_width = in_width;
     arguments->in_height = in_height;
     arguments->out_height = out_height;
@@ -101,19 +101,6 @@ Java_com_autulin_gb28181library_JNIBridge_endMux(JNIEnv *env, jclass type) {
 
     if (gb28181Muxer != NULL) {
         gb28181Muxer->user_end();
-        gb28181Muxer = NULL;
-    }
-    return 0;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_autulin_gb28181library_JNIBridge_release(JNIEnv *env, jclass type) {
-
-    if (gb28181Muxer != NULL) {
-        try {
-            gb28181Muxer->release();
-        }catch (exception e){}
         gb28181Muxer = NULL;
     }
     return 0;

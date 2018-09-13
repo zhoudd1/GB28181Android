@@ -10,6 +10,7 @@ extern "C"
 }
 
 #include "threadsafe_queue.cpp"
+#include "log.h"
 #include <jni.h>
 #include <string>
 
@@ -37,19 +38,20 @@ extern "C"
 using namespace std;
 
 
-static long getCurrentTime() {
+static uint64_t getCurrentTime() {
     struct timeval tv;
     gettimeofday(&tv,NULL);
-    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return (int64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
 
-static long bytes2long(char b[]) {
-    long temp = 0;
-    long res = 0;
+static uint64_t bytes2long(uint8_t b[]) {
+    uint64_t temp = 0;
+    uint64_t res = 0;
     for (int i=0;i<8;i++) {
         res <<= 8;
-        temp = b[i] & 0xff;
+        temp = b[i];
+        temp = temp & 0xff;
         res |= temp;
     }
     return res;

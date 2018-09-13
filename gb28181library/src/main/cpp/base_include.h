@@ -57,4 +57,24 @@ static uint64_t bytes2long(uint8_t b[]) {
     return res;
 }
 
+static uint16_t bytes2short(uint8_t b[]) {
+    uint16_t temp = 0;
+    uint16_t res = 0;
+    for (int i=0;i<2;i++) {
+        res <<= 8;
+        temp = b[i];
+        temp = (uint16_t) (temp & 0xff);
+        res |= temp;
+    }
+    return res;
+}
+
+static uint8_t * short2Bytes(uint16_t i) {
+    uint16_t temp = i;
+    uint8_t * bytes = (uint8_t *) malloc(2);
+    bytes[1] = (uint8_t) (temp & 0xff);
+    temp >>= 8;
+    bytes[0] = (uint8_t) (temp & 0xff);
+    return bytes;
+}
 #endif //BASE_INCLUDE_H

@@ -69,6 +69,7 @@ public class DemoActivity extends AppCompatActivity implements
 //        MediaRecorderBase.SMALL_VIDEO_HEIGHT = mediaRecorderConfig.getSmallVideoHeight();
 //        MediaRecorderBase.SMALL_VIDEO_WIDTH = mediaRecorderConfig.getSmallVideoWidth();
 //        MediaRecorderBase.mVideoBitrate = mediaRecorderConfig.getVideoBitrate();
+        Log.i("debug", "SMALL_VIDEO_HEIGHT: " + MediaRecorderBase.SMALL_VIDEO_HEIGHT + ", SMALL_VIDEO_WIDTH:" + MediaRecorderBase.SMALL_VIDEO_WIDTH );
     }
 
     private void initView() {
@@ -89,6 +90,7 @@ public class DemoActivity extends AppCompatActivity implements
 //        String fileName = String.valueOf(System.currentTimeMillis());
         String fileName = "tttttt";
         mediaOutput = mMediaRecorder.setFileOutPut(fileName);
+//        mediaOutput = mMediaRecorder.setUdpOutPut("10.112.181.160", 8888);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());
         mMediaRecorder.prepare();

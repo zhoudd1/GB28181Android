@@ -17,9 +17,6 @@ GB28181Muxer::GB28181Muxer(UserArguments *arg) : arguments(arg) {
 int GB28181Muxer::initMuxer() {
     LOGI("视频编码器初始化开始");
 
-    if (arguments->outType < 2)
-        LOGE("ip:%s, port:%d", arguments->ip_addr, arguments->port);
-
     av_register_all();
     pFormatCtx = avformat_alloc_context();
 
@@ -98,7 +95,8 @@ int GB28181Muxer::initMuxer() {
         return -1;
     }
 
-    initOutput();
+    gb28181Sender = new GB28181_sender(arguments);
+    gb28181Sender->initSender();
 
     pFrame = av_frame_alloc();
     picture_size = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
@@ -178,7 +176,8 @@ void *GB28181Muxer::startMux(void *obj) {
         int64_t lastPTS = gb28181Muxer->pFrame->pts;
         if (gb28181Muxer->startTime == 0) gb28181Muxer->startTime = v_time;
         gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time:%lld,startTime: %lld, now:%lld, lastPTS: %lld, new PTS: %lld, divid: %lld", v_time,
+        LOGE("v_time:%lld,startTime: %lld, now:%lld, lastPTS: %lld, new PTS: %lld, divid: %lld",
+             v_time,
              gb28181Muxer->startTime, getCurrentTime(), lastPTS, gb28181Muxer->pFrame->pts,
              gb28181Muxer->pFrame->pts - lastPTS);
         gb28181Muxer->videoFrameCnt++;
@@ -321,9 +320,10 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
  */
 int GB28181Muxer::endMux() {
     LOGE("endMux");
-    closeOutput();
+    gb28181Sender->sendCloseSignal();
 
-    LOGE("aduio queue left num: %d, video queue left num: %d", audio_queue.size(), video_queue.size());
+    LOGE("aduio queue left num: %d, video queue left num: %d", audio_queue.size(),
+         video_queue.size());
     audio_queue.clear();
     video_queue.clear();
 
@@ -336,6 +336,7 @@ int GB28181Muxer::endMux() {
 //    avio_close(pFormatCtx->pb);
     avformat_free_context(pFormatCtx);
     LOGI("视频编码结束")
+//    gb28181Sender->closeSender(); //再发一次防止之前没关掉
     return 1;
 }
 
@@ -352,6 +353,7 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
     gb28181Muxer->nowPkt = &gb28181Muxer->pkt;
     int64_t append = 0;
     int cnt = 0;
+    int aFrameLen = gb28181Muxer->arguments->a_frame_len / 2;
     while (!gb28181Muxer->is_end) {
         char szTempPacketHead[256];
         int nSizePos = 0;
@@ -364,10 +366,10 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         int in_y_size = gb28181Muxer->arguments->in_width * gb28181Muxer->arguments->in_height;
         gb28181Muxer->custom_filter(gb28181Muxer, picture_buf + 8, in_y_size,
                                     gb28181Muxer->arguments->v_custom_format);
-        delete(picture_buf);
+        delete (picture_buf);
         gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time: %lld, get a pts:%lld (aduio queue left num: %d, video queue left num: %d)"
-        , v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
+        LOGE("v_time: %lld, get a pts:%lld (aduio queue left num: %d, video queue left num: %d)",
+             v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
 
         int got_picture;
         int ret = avcodec_encode_video2(gb28181Muxer->pCodecCtx, gb28181Muxer->nextPkt,
@@ -406,9 +408,20 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         // video psm
         gb28181_make_pes_header(szTempPacketHead + nSizePos, 0xE0, nSize, lastPts, lastPts);
         nSizePos += PES_HDR_LEN;
-        gb28181Muxer->fout.write(szTempPacketHead, nSizePos);
-        gb28181Muxer->fout.write(reinterpret_cast<const char *>(gb28181Muxer->nowPkt->data), nSize);
+//        gb28181Muxer->fout.write(szTempPacketHead, nSizePos);
+//        gb28181Muxer->fout.write(reinterpret_cast<const char *>(gb28181Muxer->nowPkt->data), nSize);
         lastPts = gb28181Muxer->nextPkt->pts;
+
+        uint16_t pktPos = 0;
+        uint16_t pkt_len = (uint16_t) (nSizePos + nSize + audioCnt * (PES_HDR_LEN + aFrameLen));
+        LOGE("pkt_len in muxer: %d", pkt_len);
+        uint8_t *pkt_full = (uint8_t *) malloc(pkt_len + 2);
+        memcpy(pkt_full, short2Bytes(pkt_len), 2);
+        pktPos += 2;
+        memcpy(pkt_full + pktPos, szTempPacketHead, nSizePos);
+        pktPos += nSizePos;
+        memcpy(pkt_full + pktPos, gb28181Muxer->nowPkt->data, nSize);
+        pktPos+= nSize;
 
 //        LOGE("orgin frame:%ld", h264_encoder->nowPkt->pts);
         gb28181Muxer->nowPkt->stream_index = gb28181Muxer->video_st->index;
@@ -421,48 +434,21 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         while (audioCnt > 0) {
             uint8_t *audioFrame = *gb28181Muxer->audio_queue.wait_and_pop().get();
             int64_t audioPts = gb28181Muxer->audioFrameCnt * 3600; // 音频默认25帧，90000/25=3600
-            int aFrameLen = gb28181Muxer->arguments->a_frame_len / 2;
             gb28181_make_pes_header(szTempPacketHead + nSizePos, 0xC0, aFrameLen, audioPts,
                                     audioPts);
-            fout.write(szTempPacketHead + nSizePos, PES_HDR_LEN);
+            memcpy(pkt_full + pktPos, szTempPacketHead + nSizePos, PES_HDR_LEN);
+            pktPos+=PES_HDR_LEN;
+//            fout.write(szTempPacketHead + nSizePos, PES_HDR_LEN);
             nSizePos += PES_HDR_LEN;
-            fout.write(reinterpret_cast<char *>(audioFrame), aFrameLen);
+            memcpy(pkt_full + pktPos, audioFrame, aFrameLen);
+            pktPos+= aFrameLen;
+//            fout.write(reinterpret_cast<char *>(audioFrame), aFrameLen);
             gb28181Muxer->audioFrameCnt++;
             audioCnt--;
             delete (audioFrame);
         }
+        gb28181Sender->addPkt(pkt_full);
     }
     LOGE("mux over!");
     return 0;
-}
-
-void GB28181Muxer::initOutput() {
-    switch (arguments->outType) {
-        case 0: // udp
-            break;
-        case 1: // tcp
-            break;
-        case 2: // file
-            //打开ps文件
-            LOGE("media path: %s", arguments->media_path);
-            fout.open(arguments->media_path, ios::binary);
-            break;
-        default:
-            break;
-    }
-}
-
-
-void GB28181Muxer::closeOutput() {
-    switch (arguments->outType) {
-        case 0: // udp
-            break;
-        case 1: // tcp
-            break;
-        case 2: // file
-            fout.close();
-            break;
-        default:
-            break;
-    }
 }

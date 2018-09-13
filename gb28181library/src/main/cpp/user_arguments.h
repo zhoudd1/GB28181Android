@@ -6,7 +6,7 @@
 #include "jni.h"
 class JNIHandler;
 typedef struct UserArguments {
-    const char *ip_addr;
+    char *ip_addr;
     int port;
     int outType;
     const char *media_base_path; //文件储存地址

@@ -40,7 +40,8 @@ Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, js
     jclass global_class = (jclass) env->NewGlobalRef(type);
     UserArguments *arguments = (UserArguments *) malloc(sizeof(UserArguments));
 
-    arguments->ip_addr = ip;
+    arguments->ip_addr = (char *) malloc(strlen(ip) + 1);
+    strcpy(arguments->ip_addr, ip);
     arguments->port = port;
     arguments->outType = outType;
     arguments->media_base_path = mediaBasePath;

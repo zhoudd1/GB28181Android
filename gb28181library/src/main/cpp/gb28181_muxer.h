@@ -8,6 +8,7 @@
 #include "base_include.h"
 
 #include "user_arguments.h"
+#include "GB28181_sender.h"
 
 #include <sys/time.h>
 
@@ -40,6 +41,7 @@ private:
 
 private:
     UserArguments *arguments;
+    GB28181_sender *gb28181Sender;
     int is_end = START_STATE;
     int is_release = RELEASE_FALSE;
     threadsafe_queue<uint8_t *> video_queue;
@@ -60,12 +62,8 @@ private:
     int videoFrameCnt = 0;
     int64_t startTime = 0;
 
-    ofstream fout;
-
     int mux(GB28181Muxer *gb28181Muxer);
 
-    void initOutput();
-    void closeOutput();
 };
 
 #endif //GB281818_MUXER_H

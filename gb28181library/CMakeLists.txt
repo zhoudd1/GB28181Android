@@ -20,6 +20,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/native-lib.cpp
 
               src/main/cpp/gb28181_muxer.cpp
+              src/main/cpp/gb28181_sender.cpp
               src/main/cpp/threadsafe_queue.cpp
               )
 

@@ -40,16 +40,19 @@ int GB28181_sender::addPkt(uint8_t *pkt) {
 void *GB28181_sender::processSend(void *obj) {
     GB28181_sender * gb28181Sender = (GB28181_sender *) obj;
     while (gb28181Sender->isRuning) {
+        uint64_t start_t = getCurrentTime();
+
         uint8_t *pkt_buf = *gb28181Sender->pkt_queue.wait_and_pop().get();
         uint16_t len = bytes2short(pkt_buf);
 
+        uint64_t t1 = getCurrentTime();
 //        char strBuf[16];
 //        sprintf(strBuf, "get pkt len: %d", len);
         int n;
         switch (gb28181Sender->args->outType) {
             case 0: // udp
                 n = gb28181Sender->sendData(pkt_buf + 2, len);
-                LOGE("get pkt len: %d. sent %d. (queue left size: %d)", len, n, gb28181Sender->pkt_queue.size());
+                LOGE("[sender]get pkt len: %d. sent %d. (queue left size: %d)", len, n, gb28181Sender->pkt_queue.size());
                 break;
             case 1: // tcp
                 break;
@@ -61,6 +64,8 @@ void *GB28181_sender::processSend(void *obj) {
         }
 
         delete(pkt_buf);
+        uint64_t t2 = getCurrentTime();
+        LOGI("[sender]队列获取用时：%lld\t发送用时：%lld", t1 - start_t, t2 - t1);
     }
     LOGI("发送结束");
     gb28181Sender->closeSender();

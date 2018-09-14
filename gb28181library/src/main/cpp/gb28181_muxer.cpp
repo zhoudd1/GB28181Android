@@ -360,23 +360,34 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         int nSize = 0;
         memset(szTempPacketHead, 0, 256);
 
+        uint64_t start_t = getCurrentTime();
+
         // read next frame
         uint8_t *picture_buf = *gb28181Muxer->video_queue.wait_and_pop().get();
+        uint64_t t1 = getCurrentTime();
+
+        // 视频输入格式转换，变成pkt
         int64_t v_time = bytes2long(picture_buf);
         int in_y_size = gb28181Muxer->arguments->in_width * gb28181Muxer->arguments->in_height;
         gb28181Muxer->custom_filter(gb28181Muxer, picture_buf + 8, in_y_size,
                                     gb28181Muxer->arguments->v_custom_format);
         delete (picture_buf);
+
+        uint64_t t2 = getCurrentTime();
+
         gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
         LOGE("v_time: %lld, get a pts:%lld (audio queue left num: %d, video queue left num: %d)",
              v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
 
         int got_picture;
+        // 送入编码器
         int ret = avcodec_encode_video2(gb28181Muxer->pCodecCtx, gb28181Muxer->nextPkt,
                                         gb28181Muxer->pFrame, &got_picture);
         if (ret < 0) {
             LOGE("Failed to encode!11111111111111 \n");
         }
+
+        uint64_t t3 = getCurrentTime();
 
         // 读到了下一帧
         int64_t newPts = gb28181Muxer->nextPkt->pts;
@@ -430,6 +441,8 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         gb28181Muxer->nextPkt = t;
 //        LOGE("now frame:%ld", h264_encoder->nowPkt->pts);
 
+        uint64_t t4 = getCurrentTime();
+
         while (audioCnt > 0) {
             uint8_t *audioFrame = *gb28181Muxer->audio_queue.wait_and_pop().get();
             int64_t audioPts = gb28181Muxer->audioFrameCnt * 3600; // 音频默认25帧，90000/25=3600
@@ -446,7 +459,16 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
             audioCnt--;
             delete (audioFrame);
         }
+        uint64_t t5 = getCurrentTime();
         gb28181Sender->addPkt(pkt_full);
+
+        LOGI("[muxer]从队列取:%lld\t格式转换:%lld\t送入编码器:%lld\t视频Header制作:%lld\t音频Header制作:%lld\t",
+            t1 - start_t,
+             t2 - t1,
+             t3 - t2,
+             t4 - t3,
+             t5 - t4
+        )
     }
     LOGE("mux over!");
     return 0;

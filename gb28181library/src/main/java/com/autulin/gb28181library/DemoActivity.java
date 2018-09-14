@@ -51,6 +51,7 @@ public class DemoActivity extends AppCompatActivity implements
     public void onResume() {
         super.onResume();
 
+        //初始化
         if (mMediaRecorder == null) {
             initMediaRecorder();
         } else {
@@ -61,9 +62,11 @@ public class DemoActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // 释放资源
         mMediaRecorder.release();
     }
 
+    //初始化视频参数用的
     private void initData() {
         // 设置视频的宽高，比特率等
 //        MediaRecorderBase.SMALL_VIDEO_HEIGHT = mediaRecorderConfig.getSmallVideoHeight();
@@ -89,7 +92,7 @@ public class DemoActivity extends AppCompatActivity implements
         // 设置输出
 //        String fileName = String.valueOf(System.currentTimeMillis());
         String fileName = "tttttt";
-        mediaOutput = mMediaRecorder.setFileOutPut(fileName);
+        mediaOutput = mMediaRecorder.setFileOutPut(fileName);  //输出到文件，这里demo是/sdcard/DCIM/pstest/tttttt.ps
 //        mediaOutput = mMediaRecorder.setUdpOutPut("10.112.181.160", 8888);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());
@@ -111,6 +114,9 @@ public class DemoActivity extends AppCompatActivity implements
         mSurfaceView.setLayoutParams(lp);
     }
 
+    /**
+     * 摄像头初始化完毕，初始化显示
+     */
     @Override
     public void onPrepared() {
         initSurfaceView();

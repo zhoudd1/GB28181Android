@@ -400,7 +400,6 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
             // 如果是I帧的话，则添加系统头
             gb28181_make_sys_header(szTempPacketHead + nSizePos, audioCnt);
             nSizePos += SYS_HDR_LEN;
-            //这个地方我是不管是I帧还是p帧都加上了map的，貌似只是I帧加也没有问题
             gb28181_make_psm_header(szTempPacketHead + nSizePos);
             nSizePos += PSM_HDR_LEN;
         }

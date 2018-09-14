@@ -20,10 +20,9 @@ public class JNIBridge {
      */
     public final static int ROTATE_270_CROP_LT_MIRROR_LR=3;
 
-    public final static int TCP = 0;
 
-    public final static int UDP = 1;
-
+    public final static int UDP = 0;
+    public final static int TCP = 1;
     public static final int FILE = 2;
 
 

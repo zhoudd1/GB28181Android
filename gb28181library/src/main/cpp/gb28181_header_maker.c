@@ -11,6 +11,9 @@
 #define PES_HDR_LEN 19
 #define RTP_HDR_LEN 12
 
+#define RTP_PKT_END 1
+#define RTP_PKT_APPENDING 0
+
 /***
  *@remark:   ps头的封装,里面的具体数据的填写已经占位，可以参考标准
  *@param :   pData  [in] 填充ps头数据的地址
@@ -191,12 +194,15 @@ int gb28181_make_pes_header(char *pData, int stream_id, int payload_len, int64_t
 }
 
 
-/***
- *@remark:   rtp头的封装,里面的具体数据的填写已经占位，可以参考标准
- *@param :   pData  [in] 填充ps头数据的地址
- *@return:   0 success, others failed
-*/
-int gb28181_make_rtp_header(char *pData, int seqNum, int64_t timestamp, int ssrc )
+/**
+ * RTP头封装
+ * @param pData buffer地址
+ * @param seqNum 序号
+ * @param timestamp 时间戳
+ * @param ssrc 标识
+ * @return
+ */
+int gb28181_make_rtp_header(char *pData, int seqNum, int64_t timestamp, int ssrc, int isEnd)
 {
 
     bits_buffer_t  	bitsBuffer;
@@ -209,7 +215,7 @@ int gb28181_make_rtp_header(char *pData, int seqNum, int64_t timestamp, int ssrc
     bits_write(&bitsBuffer, 1, 0);		/*P*/
     bits_write(&bitsBuffer, 1, 0);		/*X*/
     bits_write(&bitsBuffer, 4, 0);		/*CSRC个数*/
-    bits_write(&bitsBuffer, 1, 1);			/*一帧是否结束*/
+    bits_write(&bitsBuffer, 1, isEnd);			/*一帧是否结束*/
     bits_write(&bitsBuffer, 7, 96); 		/*载荷的数据类型*/
     bits_write(&bitsBuffer, 16, seqNum); 			/*序列号，第几个*/
     bits_write(&bitsBuffer, 32, timestamp);		/*时间戳，第一个 */

@@ -368,7 +368,7 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
                                     gb28181Muxer->arguments->v_custom_format);
         delete (picture_buf);
         gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time: %lld, get a pts:%lld (aduio queue left num: %d, video queue left num: %d)",
+        LOGE("v_time: %lld, get a pts:%lld (audio queue left num: %d, video queue left num: %d)",
              v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
 
         int got_picture;
@@ -384,14 +384,14 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         int64_t frameDiv = newPts - lastPts;
         append = (frameDiv + append) % 3600;
         int audioCnt = (frameDiv + append) / 3600;
-        LOGE("now pts:%lld.|%lld| next pts:%lld,audio count:%d",
-             gb28181Muxer->nowPkt->pts,
-             gb28181Muxer->nextPkt->pts - gb28181Muxer->nowPkt->pts,
-             gb28181Muxer->nextPkt->pts, audioCnt);
+//        LOGE("now pts:%lld.|%lld| next pts:%lld,audio count:%d",
+//             gb28181Muxer->nowPkt->pts,
+//             gb28181Muxer->nextPkt->pts - gb28181Muxer->nowPkt->pts,
+//             gb28181Muxer->nextPkt->pts, audioCnt);
 
         // 0 rtp header
-//        gb28181_make_rtp_header(szTempPacketHead + nSizePos, cnt++, lastPts, 1);
-//        nSizePos += RTP_HDR_LEN;
+        gb28181_make_rtp_header(szTempPacketHead + nSizePos, cnt++, lastPts, 1, RTP_PKT_END);
+        nSizePos += RTP_HDR_LEN;
         // 1 package for ps header
         gb28181_make_ps_header(szTempPacketHead + nSizePos, lastPts);
         nSizePos += PS_HDR_LEN;
@@ -413,7 +413,7 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
 
         uint16_t pktPos = 0;
         uint16_t pkt_len = (uint16_t) (nSizePos + nSize + audioCnt * (PES_HDR_LEN + aFrameLen));
-        LOGE("pkt_len in muxer: %d", pkt_len);
+//        LOGE("pkt_len in muxer: %d", pkt_len);
         uint8_t *pkt_full = (uint8_t *) malloc(pkt_len + 2);
         memcpy(pkt_full, short2Bytes(pkt_len), 2);
         pktPos += 2;

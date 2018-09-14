@@ -6,6 +6,15 @@
 #define GB28181ANDROID_GB28181_SENDER_H
 
 #include <fstream>
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/endian.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
 #include "base_include.h"
 
 #include "user_arguments.h"
@@ -32,6 +41,14 @@ private:
     threadsafe_queue<uint8_t *> pkt_queue;
     int isRuning;
     volatile int stoped;
+
+    int sockfd;
+    struct sockaddr_in serveraddr;
+    int serverlen;
+
+    int initSocket(char* hostname, int port);
+    int sendData(uint8_t * buf, int len);
+    int closeSocket();
 
 
 };

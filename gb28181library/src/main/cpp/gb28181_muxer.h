@@ -31,8 +31,7 @@ public:
     int endMux();
 
     void custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *picture_buf,
-                       int in_y_size,
-                       int format);
+                        AVFrame *pFrame);
     ~GB28181Muxer() {
     }
 
@@ -55,15 +54,15 @@ private:
     AVPacket nPkt;
     AVPacket *nowPkt;
     AVPacket *nextPkt;
-    AVFrame *pFrame;
     int picture_size;
     int out_y_size;
     int audioFrameCnt = 0;
     int videoFrameCnt = 0;
     int64_t startTime = 0;
+    int in_y_size;
 
     int mux(GB28181Muxer *gb28181Muxer);
-
+    AVFrame * genFrame(uint8_t *rawData);
 };
 
 #endif //GB281818_MUXER_H

@@ -98,12 +98,10 @@ int GB28181Muxer::initMuxer() {
     gb28181Sender = new GB28181_sender(arguments);
     gb28181Sender->initSender();
 
-    pFrame = av_frame_alloc();
+    in_y_size = arguments->in_width * arguments->in_height;
     picture_size = avpicture_get_size(pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height);
     LOGI("   picture_size:%d", picture_size);
-    uint8_t *buf = (uint8_t *) av_malloc(picture_size);
-    avpicture_fill((AVPicture *) pFrame, buf, pCodecCtx->pix_fmt, pCodecCtx->width,
-                   pCodecCtx->height);
+
 
     av_new_packet(&pkt, picture_size);
     av_new_packet(&nPkt, picture_size);
@@ -124,13 +122,33 @@ int GB28181Muxer::initMuxer() {
  * @return
  */
 int GB28181Muxer::sendVideoFrame(uint8_t *buf) {
-    int in_y_size = arguments->in_width * arguments->in_height;
-
-    uint8_t *new_buf = (uint8_t *) malloc(in_y_size * 3 / 2);
-    memcpy(new_buf, buf, in_y_size * 3 / 2);
-    video_queue.push(new_buf);
-
+    AVFrame *pNewFrame = genFrame(buf);
+    int ret = avcodec_send_frame(pCodecCtx, pNewFrame);
+    LOGE("!!!!!!!!!!!!!!!!!!!! \n");
+    if (ret < 0) {
+        LOGE("Failed to send encode! \n");
+    }
+    videoFrameCnt++;
     return 0;
+}
+
+AVFrame * GB28181Muxer::genFrame(uint8_t *rawData) {
+    uint8_t *new_buf = (uint8_t *) malloc(in_y_size * 3 / 2);
+    memcpy(new_buf, rawData, in_y_size * 3 / 2);
+
+    AVFrame *pNewFrame = av_frame_alloc();
+    uint8_t *buf = (uint8_t *) av_malloc(picture_size);
+    avpicture_fill((AVPicture *) pNewFrame, buf, pCodecCtx->pix_fmt, pCodecCtx->width,
+                   pCodecCtx->height);
+    custom_filter(this, new_buf, pNewFrame);
+    if (startTime == 0) {
+        startTime = getCurrentTime();
+        pNewFrame->pts = 0;
+    } else {
+        pNewFrame->pts = (getCurrentTime() - startTime) * 90;
+    }
+    LOGE("new Frame pts:%lld",
+         pNewFrame->pts);
 }
 
 /**
@@ -160,38 +178,13 @@ void *GB28181Muxer::startMux(void *obj) {
     LOGE("start mux thread");
     GB28181Muxer *gb28181Muxer = (GB28181Muxer *) obj;
     while (!gb28181Muxer->is_end) {
-        if (gb28181Muxer->video_queue.empty()) {
-            continue;
-        }
-        uint8_t *picture_buf = *gb28181Muxer->video_queue.wait_and_pop().get();
-        int64_t v_time = bytes2long(picture_buf);
-
-        int in_y_size = gb28181Muxer->arguments->in_width * gb28181Muxer->arguments->in_height;
-
-        // 处理视频帧并到 h264_encoder->pFrame 中
-        gb28181Muxer->custom_filter(gb28181Muxer, picture_buf + 8, in_y_size,
-                                    gb28181Muxer->arguments->v_custom_format);
-        delete (picture_buf);
-
-        int64_t lastPTS = gb28181Muxer->pFrame->pts;
-        if (gb28181Muxer->startTime == 0) gb28181Muxer->startTime = v_time;
-        gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time:%lld,startTime: %lld, now:%lld, lastPTS: %lld, new PTS: %lld, divid: %lld",
-             v_time,
-             gb28181Muxer->startTime, getCurrentTime(), lastPTS, gb28181Muxer->pFrame->pts,
-             gb28181Muxer->pFrame->pts - lastPTS);
-        gb28181Muxer->videoFrameCnt++;
-        int got_picture = 0;
-        //Encode
-        int ret = avcodec_encode_video2(gb28181Muxer->pCodecCtx, &gb28181Muxer->pkt,
-                                        gb28181Muxer->pFrame, &got_picture);
-
+        sleep(2);
+        AVPacket *pAVPkt;
+        int ret = avcodec_receive_packet(gb28181Muxer->pCodecCtx, pAVPkt);
         if (ret < 0) {
-            LOGE("Failed to encode! \n");
-        }
-        // 前几次调用avcodec_encode_video2可能是拿不到编码好的视频的
-        if (got_picture == 1) {
-            gb28181Muxer->mux(gb28181Muxer);
+            LOGE("Failed to send encode!(%d) \n", ret);
+        } else {
+            LOGE("got encoded pkt!(pts:%lld) \n", pAVPkt->pts);
         }
     }
     if (gb28181Muxer->is_end) {
@@ -210,8 +203,9 @@ void *GB28181Muxer::startMux(void *obj) {
  */
 void
 GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *picture_buf,
-                            int in_y_size, int format) {
+                            AVFrame *pFrame) {
 
+    int format = arguments->v_custom_format;
     //   y值在H方向开始行
     int y_height_start_index =
             gb28181Muxer->arguments->in_height - gb28181Muxer->arguments->out_height;
@@ -226,7 +220,7 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
 
                 int index = gb28181Muxer->arguments->in_width * i + j;
                 uint8_t value = *(picture_buf + index);
-                *(gb28181Muxer->pFrame->data[0] + j * gb28181Muxer->arguments->out_height +
+                *(pFrame->data[0] + j * gb28181Muxer->arguments->out_height +
                   (gb28181Muxer->arguments->out_height - (i - y_height_start_index) - 1)) = value;
             }
         }
@@ -236,11 +230,11 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
                 int index = gb28181Muxer->arguments->in_width / 2 * i + j;
                 uint8_t v = *(picture_buf + in_y_size + index);
                 uint8_t u = *(picture_buf + in_y_size * 5 / 4 + index);
-                *(gb28181Muxer->pFrame->data[2] + (j * gb28181Muxer->arguments->out_height / 2 +
+                *(pFrame->data[2] + (j * gb28181Muxer->arguments->out_height / 2 +
                                                    (gb28181Muxer->arguments->out_height / 2 -
                                                     (i - uv_height_start_index) -
                                                     1))) = v;
-                *(gb28181Muxer->pFrame->data[1] + (j * gb28181Muxer->arguments->out_height / 2 +
+                *(pFrame->data[1] + (j * gb28181Muxer->arguments->out_height / 2 +
                                                    (gb28181Muxer->arguments->out_height / 2 -
                                                     (i - uv_height_start_index) -
                                                     1))) = u;
@@ -256,7 +250,7 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
                 int index = gb28181Muxer->arguments->in_width * i + j;
                 uint8_t value = *(picture_buf + index);
 
-                *(gb28181Muxer->pFrame->data[0] +
+                *(pFrame->data[0] +
                   (i - y_height_start_index) * gb28181Muxer->arguments->out_width +
                   j) = value;
             }
@@ -270,9 +264,9 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
                 uint8_t v = *(picture_buf + in_y_size + index);
 
                 uint8_t u = *(picture_buf + in_y_size * 5 / 4 + index);
-                *(gb28181Muxer->pFrame->data[2] +
+                *(pFrame->data[2] +
                   ((i - uv_height_start_index) * gb28181Muxer->arguments->out_width / 2 + j)) = v;
-                *(gb28181Muxer->pFrame->data[1] +
+                *(pFrame->data[1] +
                   ((i - uv_height_start_index) * gb28181Muxer->arguments->out_width / 2 + j)) = u;
             }
         }
@@ -289,7 +283,7 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
                 int index = gb28181Muxer->arguments->in_width *
                             (gb28181Muxer->arguments->out_height - i - 1) + j;
                 uint8_t value = *(picture_buf + index);
-                *(gb28181Muxer->pFrame->data[0] +
+                *(pFrame->data[0] +
                   (gb28181Muxer->arguments->out_width - (j - y_width_start_index) - 1)
                   * gb28181Muxer->arguments->out_height +
                   i) = value;
@@ -301,11 +295,11 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
                             (gb28181Muxer->arguments->out_height / 2 - i - 1) + j;
                 uint8_t v = *(picture_buf + in_y_size + index);
                 uint8_t u = *(picture_buf + in_y_size * 5 / 4 + index);
-                *(gb28181Muxer->pFrame->data[2] +
+                *(pFrame->data[2] +
                   (gb28181Muxer->arguments->out_width / 2 - (j - uv_width_start_index) - 1)
                   * gb28181Muxer->arguments->out_height / 2 +
                   i) = v;
-                *(gb28181Muxer->pFrame->data[1] +
+                *(pFrame->data[1] +
                   (gb28181Muxer->arguments->out_width / 2 - (j - uv_width_start_index) - 1)
                   * gb28181Muxer->arguments->out_height / 2 +
                   i) = u;
@@ -330,7 +324,7 @@ int GB28181Muxer::endMux() {
     //Clean
     if (video_st) {
         avcodec_close(video_st->codec);
-        av_free(pFrame);
+//        av_free(pFrame);
 //        av_free(picture_buf);
     }
 //    avio_close(pFormatCtx->pb);
@@ -363,29 +357,14 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         uint64_t start_t = getCurrentTime();
 
         // read next frame
+
         uint8_t *picture_buf = *gb28181Muxer->video_queue.wait_and_pop().get();
         uint64_t t1 = getCurrentTime();
 
-        // 视频输入格式转换，变成pkt
-        int64_t v_time = bytes2long(picture_buf);
-        int in_y_size = gb28181Muxer->arguments->in_width * gb28181Muxer->arguments->in_height;
-        gb28181Muxer->custom_filter(gb28181Muxer, picture_buf + 8, in_y_size,
-                                    gb28181Muxer->arguments->v_custom_format);
-        delete (picture_buf);
-
         uint64_t t2 = getCurrentTime();
-
-        gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time: %lld, get a pts:%lld (audio queue left num: %d, video queue left num: %d)",
-             v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
 
         int got_picture;
         // 送入编码器
-        int ret = avcodec_encode_video2(gb28181Muxer->pCodecCtx, gb28181Muxer->nextPkt,
-                                        gb28181Muxer->pFrame, &got_picture);
-        if (ret < 0) {
-            LOGE("Failed to encode!11111111111111 \n");
-        }
 
         uint64_t t3 = getCurrentTime();
 

@@ -62,6 +62,8 @@ private:
     int videoFrameCnt = 0;
     int64_t startTime = 0;
 
+    int64_t lastPushTime = 0;
+
     int mux(GB28181Muxer *gb28181Muxer);
 
 };

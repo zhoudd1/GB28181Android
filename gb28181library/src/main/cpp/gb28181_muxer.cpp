@@ -130,6 +130,10 @@ int GB28181Muxer::sendVideoFrame(uint8_t *buf) {
     memcpy(new_buf, buf, in_y_size * 3 / 2);
     video_queue.push(new_buf);
 
+    int64_t  nowPushTime = getCurrentTime();
+    LOGI("[muxer]推入帧间隔时间:%lld", nowPushTime - lastPushTime);
+    lastPushTime = nowPushTime;
+
     return 0;
 }
 
@@ -376,8 +380,8 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         uint64_t t2 = getCurrentTime();
 
         gb28181Muxer->pFrame->pts = (v_time - gb28181Muxer->startTime) * 90;
-        LOGE("v_time: %lld, get a pts:%lld (audio queue left num: %d, video queue left num: %d)",
-             v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size());
+        LOGE("v_time: %lld, get a pts:%lld (audio queue left num: %d, video queue left num: %d, count: %d)",
+             v_time, gb28181Muxer->pFrame->pts, audio_queue.size(), video_queue.size(), gb28181Muxer->videoFrameCnt++);
 
         int got_picture;
         // 送入编码器

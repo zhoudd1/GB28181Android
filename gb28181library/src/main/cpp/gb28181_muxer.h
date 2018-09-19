@@ -21,6 +21,7 @@ public:
     int initMuxer();
 
     static void* startMux(void *obj);
+    static void* startEncode(void *obj);
 
     int sendVideoFrame(uint8_t *buf);
 
@@ -43,6 +44,7 @@ private:
     GB28181_sender *gb28181Sender;
     int is_end = START_STATE;
     int is_release = RELEASE_FALSE;
+    threadsafe_queue<AVFrame *> vFrame_queue;
     threadsafe_queue<uint8_t *> video_queue;
     threadsafe_queue<uint8_t *> audio_queue;
     AVFormatContext *pFormatCtx;
@@ -60,6 +62,13 @@ private:
     int videoFrameCnt = 0;
     int64_t startTime = 0;
     int in_y_size;
+
+    //合成相关的参数
+    int g711aFrameLen = 0;
+    int64_t lastPts = 0;
+    int64_t frameAppend = 0;
+    int scrPerFrame;
+    int muxCnt = 0;
 
     int mux(GB28181Muxer *gb28181Muxer);
     AVFrame * genFrame(uint8_t *rawData);

@@ -712,13 +712,13 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
         this.mFrameRateCmd= String.format(" -r %d",rate);
     }
 
-    public MediaOutput setTcpOutPut(String ip, int port) {
-        mediaOutput = new MediaOutput(ip, port, "", "", JNIBridge.TCP);
+    public MediaOutput setTcpOutPut(String ip, int port, int ssrc) {
+        mediaOutput = new MediaOutput(ip, port, "", "", JNIBridge.TCP, ssrc);
         return mediaOutput;
     }
 
-    public MediaOutput setUdpOutPut(String ip, int port) {
-        mediaOutput = new MediaOutput(ip, port, "", "", JNIBridge.UDP);
+    public MediaOutput setUdpOutPut(String ip, int port, int ssrc) {
+        mediaOutput = new MediaOutput(ip, port, "", "", JNIBridge.UDP, ssrc);
         return mediaOutput;
     }
 
@@ -741,7 +741,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
         if (!file.exists()) {
             file.mkdirs();
         }
-        mediaOutput = new MediaOutput("", 0, path, fileName, JNIBridge.FILE);
+        mediaOutput = new MediaOutput("", 0, path, fileName, JNIBridge.FILE, 0);
         return mediaOutput;
     }
 }

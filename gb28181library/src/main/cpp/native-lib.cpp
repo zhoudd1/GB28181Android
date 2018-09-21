@@ -100,7 +100,7 @@ JNIEXPORT jint JNICALL
 Java_com_autulin_gb28181library_JNIBridge_endMux(JNIEnv *env, jclass type) {
 
     if (gb28181Muxer != NULL) {
-        gb28181Muxer->user_end();
+        gb28181Muxer->sendEndSignal();
         gb28181Muxer = NULL;
     }
     return 0;

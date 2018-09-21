@@ -15,7 +15,7 @@ GB28181Muxer::GB28181Muxer(UserArguments *arg) : arguments(arg) {
  * @return
  */
 int GB28181Muxer::initMuxer() {
-    LOGI("视频编码器初始化开始");
+    LOGI("[muxer]init starting.");
 
     av_register_all();
     pFormatCtx = avformat_alloc_context();
@@ -115,8 +115,7 @@ int GB28181Muxer::initMuxer() {
     pthread_create(&thread, NULL, GB28181Muxer::startMux, this);
     pthread_t thread2;
     pthread_create(&thread2, NULL, GB28181Muxer::startEncode, this);
-    LOGI("视频编码器初始化完成")
-
+    LOGI("[muxer]init over");
     return 0;
 }
 
@@ -131,11 +130,16 @@ int GB28181Muxer::sendVideoFrame(uint8_t *buf) {
     int64_t st1 = getCurrentTime();
     vFrame_queue.push(pNewFrame);
     int64_t  et = getCurrentTime();
-    LOGE("生成帧用时：%lld, 原始帧入队用时：%lld", st1 - st,  et - st1);
+    LOGI("[muxer][send in]gen AVFrame time：%lld, send AVFrame to queue time：%lld", st1 - st,  et - st1);
     videoFrameCnt++;
     return 0;
 }
 
+/**
+ * 将原始帧封装成为FFmpeg的AVFrame
+ * @param rawData 原始帧数据
+ * @return AVFrame
+ */
 AVFrame *GB28181Muxer::genFrame(uint8_t *rawData) {
     uint8_t *new_buf = (uint8_t *) malloc(in_y_size * 3 / 2);
     memcpy(new_buf, rawData, in_y_size * 3 / 2);
@@ -151,7 +155,7 @@ AVFrame *GB28181Muxer::genFrame(uint8_t *rawData) {
     } else {
         pNewFrame->pts = (getCurrentTime() - startTime) * 90;
     }
-    LOGI("new Frame pts:%lld(%d)",
+    LOGI("[muxer][gen frame]new Frame pts:%lld(%d)",
          pNewFrame->pts, videoFrameCnt);
     return pNewFrame;
 }
@@ -175,9 +179,14 @@ int GB28181Muxer::sendAudioFrame(uint8_t *buf) {
 }
 
 
-
+/**
+ * 编码的线程方法
+ * 不断的从AVFrame队列里面取帧出来，送到FFmpeg中编码
+ * @param obj
+ * @return
+ */
 void *GB28181Muxer::startEncode(void *obj) {
-    LOGE("start encode thread");
+    LOGE("[muxer][encode]start encode thread");
     GB28181Muxer *gb28181Muxer = (GB28181Muxer *) obj;
     while (!gb28181Muxer->is_end) {
         int64_t st = getCurrentTime();
@@ -185,24 +194,28 @@ void *GB28181Muxer::startEncode(void *obj) {
         int64_t et1 = getCurrentTime();
         int ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pFrame);
         while (ret == AVERROR(EAGAIN)) {
-//            LOGE("送入FFmpeg错误：%d.（重试）", ret);
-            usleep(5000);
+            usleep(1000);
             ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pFrame);
         }
         int64_t et2 = getCurrentTime();
-        LOGE("fetch queue time：%lld（frame left：%d），in FFmpeg time：%lld.", et1 - st, gb28181Muxer->vFrame_queue.size(), et2 - et1);
+        LOGI("fetch raw frame from queue time：%lld (frame quque left：%d)，in FFmpeg time：%lld.", et1 - st, gb28181Muxer->vFrame_queue.size(), et2 - et1);
         if (ret < 0) {
             LOGE("send FFmpeg error：%d.", ret);
         }
     }
+    LOGI("[muxer][encode]encode thread is over.");
+    gb28181Muxer->endMux();
+    delete gb28181Muxer;
+    return 0;
 }
+
 /**
- * 启动编码线程
+ * 合并音视频并生成GB28181的线程方法
  * @param obj
  * @return
  */
 void *GB28181Muxer::startMux(void *obj) {
-    LOGE("start mux thread");
+    LOGE("[muxer][mux]start mux thread");
     GB28181Muxer *gb28181Muxer = (GB28181Muxer *) obj;
     while (!gb28181Muxer->is_end) {
         int ret;
@@ -214,7 +227,7 @@ void *GB28181Muxer::startMux(void *obj) {
             } else{
                 gb28181Muxer->nowPkt = &gb28181Muxer->pkt;
                 LOGI("got first encoded pkt!(pts:%lld, queue size: %d) \n",
-                     gb28181Muxer->nowPkt->pts, gb28181Muxer->video_queue.size());
+                     gb28181Muxer->nowPkt->pts, gb28181Muxer->vFrame_queue.size());
                 gb28181Muxer->lastPts = gb28181Muxer->nowPkt->pts;
                 gb28181Muxer->muxCnt++;
             }
@@ -222,7 +235,7 @@ void *GB28181Muxer::startMux(void *obj) {
             ret = avcodec_receive_packet(gb28181Muxer->pCodecCtx, gb28181Muxer->nextPkt);
             if (ret < 0) {
 //            LOGE("Failed to send encode!(%d) \n", ret);
-                usleep(5000);
+                usleep(1000);
             } else {
 //                LOGI("got encoded pkt!(pts:%lld, queue size: %d) \n", gb28181Muxer->nextPkt->pts,
 //                     gb28181Muxer->video_queue.size());
@@ -230,13 +243,13 @@ void *GB28181Muxer::startMux(void *obj) {
             }
         }
         int64_t et = getCurrentTime();
-        if (ret >= 0)
-            LOGE("mux one time:%lld", et - st);
+        if (ret >= 0){
+            LOGI("mux one pkt over!(video queue size: %d, audio queue size: %d), time use: %lld",
+                 gb28181Muxer->vFrame_queue.size(), gb28181Muxer->audio_queue.size(), et - st);
+        }
+
     }
-    if (gb28181Muxer->is_end) {
-        gb28181Muxer->endMux();
-        delete gb28181Muxer;
-    }
+    LOGI("[muxer][mux]mux thread is over.")
     return 0;
 }
 
@@ -359,13 +372,13 @@ GB28181Muxer::custom_filter(const GB28181Muxer *gb28181Muxer, const uint8_t *pic
  * @return
  */
 int GB28181Muxer::endMux() {
-    LOGE("endMux");
+    LOGE("[muxer]ending");
     gb28181Sender->sendCloseSignal();
 
-    LOGE("aduio queue left num: %d, video queue left num: %d", audio_queue.size(),
-         video_queue.size());
+    LOGE("audio queue left num: %d, video queue left num: %d", audio_queue.size(),
+         vFrame_queue.size());
     audio_queue.clear();
-    video_queue.clear();
+    vFrame_queue.clear();
 
     //Clean
     if (video_st) {
@@ -375,19 +388,24 @@ int GB28181Muxer::endMux() {
     }
 //    avio_close(pFormatCtx->pb);
     avformat_free_context(pFormatCtx);
-    LOGI("视频编码结束")
-//    gb28181Sender->closeSender(); //再发一次防止之前没关掉
-    return 1;
+    LOGI("[muxer]ended.")
+    return 0;
 }
 
 /**
- * 用户结束
+ * 用户选择结束
  */
-void GB28181Muxer::user_end() {
-    LOGE("call user end");
+void GB28181Muxer::sendEndSignal() {
+    LOGE("[muxer]change mux status.(end)");
     is_end = END_STATE;
 }
 
+/**
+ * 将视频帧和音频帧打包的实际方法
+ * 一个视频帧对应多个音频帧
+ * @param gb28181Muxer
+ * @return
+ */
 int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
 
     //init header buffer
@@ -398,7 +416,7 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
 
     int64_t newPts = gb28181Muxer->nextPkt->pts;
 
-    // 计算写入音频的个数
+    // calculate the num of audio frame in one video frame
     int64_t frameDiv = newPts - gb28181Muxer->lastPts;
     gb28181Muxer->frameAppend = (frameDiv + gb28181Muxer->frameAppend) % 3600;
     int audioCnt = (frameDiv + gb28181Muxer->frameAppend) / 3600;
@@ -416,14 +434,14 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
     nSizePos += PS_HDR_LEN;
     //2 system header
     if (gb28181Muxer->nowPkt->flags == 1) {
-        // 如果是I帧的话，则添加系统头
+        // if I frame, add SYS_HEADER and PSM_HEADER
         gb28181_make_sys_header(gb28181headerBuf + nSizePos, audioCnt);
         nSizePos += SYS_HDR_LEN;
         gb28181_make_psm_header(gb28181headerBuf + nSizePos);
         nSizePos += PSM_HDR_LEN;
     }
     nSize = gb28181Muxer->nowPkt->size;
-    // video psm
+    // video pem
     gb28181_make_pes_header(gb28181headerBuf + nSizePos, 0xE0, nSize, gb28181Muxer->lastPts,
                             gb28181Muxer->lastPts);
     nSizePos += PES_HDR_LEN;
@@ -464,8 +482,5 @@ int GB28181Muxer::mux(GB28181Muxer *gb28181Muxer) {
         delete (audioFrame);
     }
     gb28181Sender->addPkt(pkt_full);
-
-    LOGI("mux one pkt over!(video queue size: %d, audio queue size: %d)",
-         gb28181Muxer->video_queue.size(), gb28181Muxer->audio_queue.size());
     return 0;
 }

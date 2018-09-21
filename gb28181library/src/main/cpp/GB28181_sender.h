@@ -39,7 +39,7 @@ private:
     UserArguments * args;
     ofstream fout;
     threadsafe_queue<uint8_t *> pkt_queue;
-    int isRuning;
+    volatile int isRuning;
     volatile int stoped;
 
     int sockfd;

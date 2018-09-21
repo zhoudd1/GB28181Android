@@ -28,7 +28,7 @@ int GB28181_sender::initSender() {
     isRuning = RUNING;
     pthread_t thread;
     pthread_create(&thread, NULL, GB28181_sender::processSend, this);
-    LOGI("发送器初始化完成")
+    LOGI("[sender]init ok.")
     return 0;
 }
 
@@ -43,6 +43,7 @@ void *GB28181_sender::processSend(void *obj) {
         uint64_t start_t = getCurrentTime();
 
         uint8_t *pkt_buf = *gb28181Sender->pkt_queue.wait_and_pop().get();
+        if (!gb28181Sender->isRuning) break;
         uint16_t len = bytes2short(pkt_buf);
 
         uint64_t t1 = getCurrentTime();
@@ -65,19 +66,21 @@ void *GB28181_sender::processSend(void *obj) {
 
         delete(pkt_buf);
         uint64_t t2 = getCurrentTime();
-        LOGI("[sender]队列获取用时：%lld\t发送用时：%lld", t1 - start_t, t2 - t1);
+        LOGI("[sender]read from queue：%lld\t I/O time：%lld", t1 - start_t, t2 - t1);
     }
-    LOGI("发送结束");
+    LOGI("[sender]sending thread is over.");
     gb28181Sender->closeSender();
     return nullptr;
 }
 
 int GB28181_sender::sendCloseSignal() {
     isRuning = STOPED;
+    pkt_queue.push(NULL);
     return 0;
 }
 
 int GB28181_sender::closeSender() {
+    LOGE("[sender]start close sender.")
     if (stoped) {
         return 0;
     } else {
@@ -98,8 +101,9 @@ int GB28181_sender::closeSender() {
             break;
     }
     if (n < 0) {
-        LOGE("close socket error");
+        LOGE("close socket error.(%d)", n);
     }
+    LOGE("[sender]close sender over.")
     return n;
 }
 

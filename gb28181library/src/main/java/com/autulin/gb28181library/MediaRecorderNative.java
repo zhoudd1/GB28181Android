@@ -24,7 +24,7 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
     public void onPreviewFrame(byte[] data, Camera camera) {
         if (mRecording) {
             long nt = System.currentTimeMillis();
-            Log.e("now", "onPreviewFrame: "+ nt + ", div:" + (nt-  t));
+            Log.i("Recorder", "onPreviewFrame: "+ nt + ", div:" + (nt-  t) + ", pts div: " + (nt-  t) * 90);
             t = nt;
             JNIBridge.sendOneVideoFrame(data);
             mPreviewFrameCallCount++;

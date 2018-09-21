@@ -190,9 +190,9 @@ void *GB28181Muxer::startEncode(void *obj) {
             ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pFrame);
         }
         int64_t et2 = getCurrentTime();
-        LOGE("从队列取耗时：%lld（队列剩余帧：%d），送入FFmpeg耗时：%lld.", et1 - st, gb28181Muxer->vFrame_queue.size(), et2 - et1);
+        LOGE("fetch queue time：%lld（frame left：%d），in FFmpeg time：%lld.", et1 - st, gb28181Muxer->vFrame_queue.size(), et2 - et1);
         if (ret < 0) {
-            LOGE("送入FFmpeg错误：%d.", ret);
+            LOGE("send FFmpeg error：%d.", ret);
         }
     }
 }
@@ -231,7 +231,7 @@ void *GB28181Muxer::startMux(void *obj) {
         }
         int64_t et = getCurrentTime();
         if (ret >= 0)
-            LOGE("消费用时:%lld", et - st);
+            LOGE("mux one time:%lld", et - st);
     }
     if (gb28181Muxer->is_end) {
         gb28181Muxer->endMux();

@@ -52,27 +52,12 @@ public class DemoActivity extends AppCompatActivity implements
 //                new Thread(runnable).start();
             }
         });
-    }
-
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            try {
-                DatagramSocket socket = new DatagramSocket(8888);
-                InetAddress serverAddress = InetAddress.getByName("10.112.181.160");
-                String str = "hello";
-                DatagramPacket pkt = new DatagramPacket (str.getBytes() , str.getBytes().length , serverAddress , 8888);
-                socket.send(pkt);
-                socket.close();
-            } catch (SocketException e) {
-                e.printStackTrace();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        try {
+            Runtime.getRuntime().exec("logcat -f /sdcard/DCIM/pstest/log.txt");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    };
+    }
 
     @Override
     public void onResume() {

@@ -46,15 +46,15 @@ void *GB28181_sender::processSend(void *obj) {
         uint16_t len = bytes2short(pkt_buf);
 
         uint64_t t1 = getCurrentTime();
-//        char strBuf[16];
-//        sprintf(strBuf, "get pkt len: %d", len);
-        int n;
+        ssize_t n;
         switch (gb28181Sender->args->outType) {
             case 0: // udp
                 n = gb28181Sender->sendData(pkt_buf + 2, len);
-                LOGE("[sender]get pkt len: %d. sent %d. (queue left size: %d)", len, n, gb28181Sender->pkt_queue.size());
+                LOGI("[sender][udp]get pkt len: %d. sent %ld. (queue left size: %d)", len, n, gb28181Sender->pkt_queue.size());
                 break;
             case 1: // tcp
+                n = gb28181Sender->sendData(pkt_buf, len + 2);
+                LOGI("[sender][tcp]get pkt len: %d. sent %ld. (queue left size: %d)", len, n, gb28181Sender->pkt_queue.size());
                 break;
             case 2: // file
                 gb28181Sender->fout.write((const char *) (pkt_buf + 2), len);
@@ -104,13 +104,23 @@ int GB28181_sender::closeSender() {
 }
 
 int GB28181_sender::initSocket(char *hostname, int port) {
-    //todo
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    switch (args->outType) {
+        case 0: // udp
+            sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            break;
+        case 1: // tcp
+            sockfd = socket(AF_INET, SOCK_STREAM, 0);
+            break;
+        default:
+            sockfd = -99;
+    }
+
     if (sockfd < 0){
-        LOGE("ERROR opening socket");
+        LOGE("ERROR opening socket.(%d)", sockfd);
         return sockfd;
     }
 
+    // 域名解析相关
 //    struct hostent *server;
 //    server = gethostbyname(hostname);
 //    if (server == NULL) {
@@ -127,11 +137,32 @@ int GB28181_sender::initSocket(char *hostname, int port) {
     serveraddr.sin_port = htons(port);
     serverlen = sizeof(serveraddr);
 
+    if (args->outType == 1) { // tcp
+        int ret = connect(sockfd, (const sockaddr *) &serveraddr, serverlen);
+        if (ret < 0){
+            LOGE("ERROR connect.(%d)", ret);
+            return ret;
+        }
+    }
+
     return 0;
 }
 
-int GB28181_sender::sendData(uint8_t *buf, int len) {
-    int n = sendto(sockfd, buf, len, 0, (const sockaddr *) &serveraddr, serverlen);
+ssize_t GB28181_sender::sendData(uint8_t *buf, int len) {
+    ssize_t n = 0;
+    switch (args->outType) {
+        case 0: // udp
+            n = sendto(sockfd, buf, len, 0, (const sockaddr *) &serveraddr, serverlen);
+            break;
+        case 1: // tcp
+            n = send(sockfd, buf, len, 0);
+            break;
+        default:
+            return -1;
+    }
+    if (n < 0) {
+        LOGE("send error.(%ld)", n);
+    }
     return n;
 }
 

@@ -16,20 +16,17 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
         JNIBridge.endMux();
     }
 
+    long t = System.currentTimeMillis();
     /**
      * 视频数据回调
      */
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         if (mRecording) {
-            long t = System.currentTimeMillis();
-            byte[] mdata = new byte[data.length + 8];
-            for (int i = 0; i < 8; i++) {
-                int offset = 64 - (i + 1) * 8;
-                mdata[i] = (byte) ((t >> offset) & 0xff);
-            }
-            System.arraycopy(data, 0, mdata, 8, data.length);
-            JNIBridge.sendOneVideoFrame(mdata);
+            long nt = System.currentTimeMillis();
+            Log.e("now", "onPreviewFrame: "+ nt + ", div:" + (nt-  t));
+            t = nt;
+            JNIBridge.sendOneVideoFrame(data);
             mPreviewFrameCallCount++;
         }
         super.onPreviewFrame(data, camera);
@@ -88,7 +85,8 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
                 SMALL_VIDEO_HEIGHT,
                 mFrameRate,
                 mVideoBitrate,
-                mAudioCollector.getFrameLen()
+                mAudioCollector.getFrameLen(),
+                mediaOutput.getSsrc()
         );
 
 

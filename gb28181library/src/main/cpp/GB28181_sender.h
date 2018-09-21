@@ -47,7 +47,7 @@ private:
     int serverlen;
 
     int initSocket(char* hostname, int port);
-    int sendData(uint8_t * buf, int len);
+    ssize_t sendData(uint8_t * buf, int len);
     int closeSocket();
 
 

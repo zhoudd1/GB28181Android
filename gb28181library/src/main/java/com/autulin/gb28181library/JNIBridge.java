@@ -64,7 +64,8 @@ public class JNIBridge {
             int out_height,
             int frameRate,
             long bit_rate,
-            int audioFrameLen
+            int audioFrameLen,
+            int ssrc
     );
 
     public static native int sendOneVideoFrame(byte[] data);

@@ -32,7 +32,7 @@ Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, js
                                                     jstring mediaBasePath_, jstring mediaName_,
                                                     jint filter, jint in_width, jint in_height,
                                                     jint out_width, jint out_height, jint frameRate,
-                                                    jlong bit_rate, jint audioFrameLen) {
+                                                    jlong bit_rate, jint audioFrameLen, jint ssrc) {
     const char *ip = env->GetStringUTFChars(ip_, 0);
     const char *mediaBasePath = env->GetStringUTFChars(mediaBasePath_, 0);
     const char *mediaName = env->GetStringUTFChars(mediaName_, 0);
@@ -44,8 +44,7 @@ Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, js
     strcpy(arguments->ip_addr, ip);
     arguments->port = port;
     arguments->outType = outType;
-    arguments->media_base_path = mediaBasePath;
-    arguments->media_name = mediaName;
+    arguments->ssrc = ssrc;
 
     size_t m_path_size = strlen(mediaBasePath) + strlen(mediaName) + strlen(MEDIA_FORMAT) + 1;
     arguments->media_path = (char *) malloc(m_path_size + 1);

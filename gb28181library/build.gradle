@@ -13,6 +13,11 @@ android {
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+        // 指定ndk编译的平台
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a"
+        }
+
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++14"

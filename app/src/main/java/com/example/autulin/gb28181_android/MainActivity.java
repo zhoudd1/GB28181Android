@@ -5,7 +5,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import com.autulin.gb28181library.DemoActivity;
 import com.autulin.gb28181library.JNIBridge;
 
 public class MainActivity extends AppCompatActivity {

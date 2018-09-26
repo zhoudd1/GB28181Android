@@ -169,7 +169,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
     /**
      * 是否正在录制
      */
-    protected volatile boolean mRecording;
+    public volatile boolean mRecording;
     /**
      * PreviewFrame调用次数，测试用
      */

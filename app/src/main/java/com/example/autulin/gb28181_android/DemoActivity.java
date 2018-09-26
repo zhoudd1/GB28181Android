@@ -1,4 +1,4 @@
-package com.autulin.gb28181library;
+package com.example.autulin.gb28181_android;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -10,15 +10,11 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
+import com.autulin.gb28181library.MediaOutput;
+import com.autulin.gb28181library.MediaRecorderBase;
+import com.autulin.gb28181library.MediaRecorderNative;
 import com.autulin.gb28181library.utils.DeviceUtils;
-
-import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 
 public class DemoActivity extends AppCompatActivity implements
         MediaRecorderBase.OnErrorListener, MediaRecorderBase.OnPreparedListener {

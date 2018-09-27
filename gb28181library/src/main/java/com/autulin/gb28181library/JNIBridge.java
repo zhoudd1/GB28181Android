@@ -3,7 +3,7 @@ package com.autulin.gb28181library;
 public class JNIBridge {
     // Used to load the 'native-lib' library on application startup.
     static {
-        System.loadLibrary("native-lib");
+        System.loadLibrary("gb_native");
     }
 
     public final static int ROTATE_0_CROP_LF=0;

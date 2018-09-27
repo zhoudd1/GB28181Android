@@ -1,5 +1,7 @@
 package com.example.autulin.gb28181_android;
 
+import android.Manifest;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -30,6 +32,8 @@ public class DemoActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // 防止锁屏
         setContentView(R.layout.activity_demo);
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
         initData();
         initView();
 
@@ -49,7 +53,8 @@ public class DemoActivity extends AppCompatActivity implements
             }
         });
         try {
-            Runtime.getRuntime().exec("logcat -f /sdcard/DCIM/pstest/log.txt");
+            Log.e("log", "path: "+MediaRecorderBase.getLogOutPutPath());
+            Runtime.getRuntime().exec("logcat -f " + MediaRecorderBase.getLogOutPutPath());
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -724,7 +724,7 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
 
     public MediaOutput setFileOutPut(String fileName) {
         File dcim = Environment
-                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+                .getExternalStorageDirectory();
         String path;
         if (DeviceUtils.isZte()) {
             if (dcim.exists()) {
@@ -743,5 +743,11 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
         }
         mediaOutput = new MediaOutput("", 0, path, fileName, JNIBridge.FILE, 0);
         return mediaOutput;
+    }
+
+    public static String getLogOutPutPath() {
+        File path = Environment
+                .getExternalStorageDirectory();
+        return path+FILE_DIR_DEFAULT+"/mux.log";
     }
 }

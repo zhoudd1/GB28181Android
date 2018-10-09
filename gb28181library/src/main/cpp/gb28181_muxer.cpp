@@ -126,39 +126,15 @@ int GB28181Muxer::initMuxer() {
  */
 int GB28181Muxer::sendVideoFrame(uint8_t *buf) {
     int64_t st = getCurrentTime();
-    AVFrame *pNewFrame = genFrame(buf);
-    int64_t st1 = getCurrentTime();
-    vFrame_queue.push(pNewFrame);
+    uint8_t *new_buf = (uint8_t *) malloc(in_y_size * 3 / 2);
+    memcpy(new_buf, buf, in_y_size * 3 / 2);
+    video_queue.push(new_buf);
     int64_t  et = getCurrentTime();
-    LOGI("[muxer][send in]gen AVFrame time：%lld, send AVFrame to queue time：%lld", st1 - st,  et - st1);
+    LOGI("[muxer][send in]send raw Frame to queue time：%lld", et - st);
     videoFrameCnt++;
     return 0;
 }
 
-/**
- * 将原始帧封装成为FFmpeg的AVFrame
- * @param rawData 原始帧数据
- * @return AVFrame
- */
-AVFrame *GB28181Muxer::genFrame(uint8_t *rawData) {
-    uint8_t *new_buf = (uint8_t *) malloc(in_y_size * 3 / 2);
-    memcpy(new_buf, rawData, in_y_size * 3 / 2);
-
-    AVFrame *pNewFrame = av_frame_alloc();
-    uint8_t *buf = (uint8_t *) av_malloc(picture_size);
-    avpicture_fill((AVPicture *) pNewFrame, buf, pCodecCtx->pix_fmt, pCodecCtx->width,
-                   pCodecCtx->height);
-    custom_filter(this, new_buf, pNewFrame);
-    if (startTime == 0) {
-        startTime = getCurrentTime();
-        pNewFrame->pts = 0;
-    } else {
-        pNewFrame->pts = (getCurrentTime() - startTime) * 90;
-    }
-    LOGI("[muxer][gen frame]new Frame pts:%lld(%d)",
-         pNewFrame->pts, videoFrameCnt);
-    return pNewFrame;
-}
 
 /**
  * 编码并发送一音频帧到编码队列
@@ -181,24 +157,40 @@ int GB28181Muxer::sendAudioFrame(uint8_t *buf) {
 
 /**
  * 编码的线程方法
- * 不断的从AVFrame队列里面取帧出来，送到FFmpeg中编码
+ * 不断的从视频原始帧队列里面取帧出来，送到FFmpeg中编码
  * @param obj
  * @return
  */
 void *GB28181Muxer::startEncode(void *obj) {
     LOGE("[muxer][encode]start encode thread");
     GB28181Muxer *gb28181Muxer = (GB28181Muxer *) obj;
+
+    //初始化一个AVFrame，这个AVFrame是可以复用多次的
+    AVFrame *pNewFrame = av_frame_alloc();
+    uint8_t *buf = (uint8_t *) av_malloc(gb28181Muxer->picture_size);
+    avpicture_fill((AVPicture *) pNewFrame, buf, gb28181Muxer->pCodecCtx->pix_fmt, gb28181Muxer->pCodecCtx->width,
+                   gb28181Muxer->pCodecCtx->height);
+
     while (!gb28181Muxer->is_end) {
         int64_t st = getCurrentTime();
-        AVFrame * pFrame = *gb28181Muxer->vFrame_queue.wait_and_pop();
+        uint8_t * new_buf = *gb28181Muxer->video_queue.wait_and_pop();
+        gb28181Muxer->custom_filter(gb28181Muxer, new_buf, pNewFrame);
+        delete new_buf;
+
+        if (gb28181Muxer->startTime == 0) {
+            gb28181Muxer->startTime = getCurrentTime();
+            pNewFrame->pts = 0;
+        } else {
+            pNewFrame->pts = (getCurrentTime() - gb28181Muxer->startTime) * 90;
+        }
         int64_t et1 = getCurrentTime();
-        int ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pFrame);
+        int ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pNewFrame);
         while (ret == AVERROR(EAGAIN)) {
             usleep(1000);
-            ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pFrame);
+            ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pNewFrame);
         }
         int64_t et2 = getCurrentTime();
-        LOGI("fetch raw frame from queue time：%lld (frame quque left：%d)，in FFmpeg time：%lld.", et1 - st, gb28181Muxer->vFrame_queue.size(), et2 - et1);
+        LOGI("fetch raw frame from queue time：%lld (video frame queue left：%d)，in FFmpeg time：%lld.", et1 - st, gb28181Muxer->video_queue.size(), et2 - et1);
         if (ret < 0) {
             LOGE("send FFmpeg error：%d.", ret);
         }
@@ -227,7 +219,7 @@ void *GB28181Muxer::startMux(void *obj) {
             } else{
                 gb28181Muxer->nowPkt = &gb28181Muxer->pkt;
                 LOGI("got first encoded pkt!(pts:%lld, queue size: %d) \n",
-                     gb28181Muxer->nowPkt->pts, gb28181Muxer->vFrame_queue.size());
+                     gb28181Muxer->nowPkt->pts, gb28181Muxer->video_queue.size());
                 gb28181Muxer->lastPts = gb28181Muxer->nowPkt->pts;
                 gb28181Muxer->muxCnt++;
             }
@@ -245,7 +237,7 @@ void *GB28181Muxer::startMux(void *obj) {
         int64_t et = getCurrentTime();
         if (ret >= 0){
             LOGI("mux one pkt over!(video queue size: %d, audio queue size: %d), time use: %lld",
-                 gb28181Muxer->vFrame_queue.size(), gb28181Muxer->audio_queue.size(), et - st);
+                 gb28181Muxer->video_queue.size(), gb28181Muxer->audio_queue.size(), et - st);
         }
 
     }
@@ -376,9 +368,9 @@ int GB28181Muxer::endMux() {
     gb28181Sender->sendCloseSignal();
 
     LOGE("audio queue left num: %d, video queue left num: %d", audio_queue.size(),
-         vFrame_queue.size());
+         video_queue.size());
     audio_queue.clear();
-    vFrame_queue.clear();
+    video_queue.clear();
 
     //Clean
     if (video_st) {

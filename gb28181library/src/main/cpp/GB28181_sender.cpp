@@ -15,6 +15,7 @@ int GB28181_sender::initSender() {
             break;
         case 1: // tcp
             LOGE("ip:%s, port:%d, out_type:%d", args->ip_addr, args->port, args->outType);
+            initSocket(args->ip_addr, args->port);
             break;
         case 2: // file
             //打开ps文件

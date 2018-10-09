@@ -104,10 +104,10 @@ public class DemoActivity extends AppCompatActivity implements
 
         // 设置输出
 //        String fileName = String.valueOf(System.currentTimeMillis());
-        String fileName = "tttttt";
-        mediaOutput = mMediaRecorder.setFileOutPut(fileName);  //输出到文件，这里demo是/sdcard/DCIM/pstest/tttttt.ps
-//        int ssrc = 1;
-//        mediaOutput = mMediaRecorder.setUdpOutPut("10.112.181.160", 8888, ssrc);
+//        String fileName = "tttttt";
+//        mediaOutput = mMediaRecorder.setFileOutPut(fileName);  //输出到文件，这里demo是/sdcard/pstest/tttttt.ps
+        int ssrc = 1;
+        mediaOutput = mMediaRecorder.setTcpOutPut("10.112.154.194", 8888, ssrc);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());
         mMediaRecorder.prepare();

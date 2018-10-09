@@ -44,8 +44,8 @@ private:
     GB28181_sender *gb28181Sender;
     volatile int is_end = START_STATE;
     volatile int is_release = RELEASE_FALSE;
-    threadsafe_queue<AVFrame *> vFrame_queue;
-//    threadsafe_queue<uint8_t *> video_queue;
+//    threadsafe_queue<AVFrame *> vFrame_queue;
+    threadsafe_queue<uint8_t *> video_queue;
     threadsafe_queue<uint8_t *> audio_queue;
     AVFormatContext *pFormatCtx;
     AVOutputFormat *fmt;

@@ -86,7 +86,8 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
                 mFrameRate,
                 mVideoBitrate,
                 mAudioCollector.getFrameLen(),
-                mediaOutput.getSsrc()
+                mediaOutput.getSsrc(),
+                QUEUE_MAX_SIZE
         );
 
 

@@ -161,6 +161,8 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
      */
     protected static int mVideoBitrate = 580000;
 
+    public static int QUEUE_MAX_SIZE = 20;
+
     public static int mSupportedPreviewWidth = 0;
     /**
      * 状态标记
@@ -183,6 +185,19 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
 
     }
 
+    /**
+     * 设置为后置摄像头
+     */
+    public void setCameraBack() {
+        mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+    }
+
+    /**
+     * 设置为前置摄像头
+     */
+    public void setCameraFront() {
+        mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    }
     /**
      * 设置预览输出SurfaceHolder
      *

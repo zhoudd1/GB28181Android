@@ -84,7 +84,8 @@ public class DemoActivity extends AppCompatActivity implements
         // 设置视频的宽高，比特率等
 //        MediaRecorderBase.SMALL_VIDEO_HEIGHT = mediaRecorderConfig.getSmallVideoHeight();
 //        MediaRecorderBase.SMALL_VIDEO_WIDTH = mediaRecorderConfig.getSmallVideoWidth();
-//        MediaRecorderBase.mVideoBitrate = mediaRecorderConfig.getVideoBitrate();
+//        MediaRecorderBase. = mediaRecorderConfig.getVideoBitrate();
+        MediaRecorderBase.QUEUE_MAX_SIZE = 20;
         Log.i("debug", "SMALL_VIDEO_HEIGHT: " + MediaRecorderBase.SMALL_VIDEO_HEIGHT + ", SMALL_VIDEO_WIDTH:" + MediaRecorderBase.SMALL_VIDEO_WIDTH );
     }
 
@@ -101,13 +102,14 @@ public class DemoActivity extends AppCompatActivity implements
 
         mMediaRecorder.setOnErrorListener(this);
         mMediaRecorder.setOnPreparedListener(this);
+//        mMediaRecorder.setCameraFront();
 
         // 设置输出
 //        String fileName = String.valueOf(System.currentTimeMillis());
 //        String fileName = "tttttt";
 //        mediaOutput = mMediaRecorder.setFileOutPut(fileName);  //输出到文件，这里demo是/sdcard/pstest/tttttt.ps
         int ssrc = 1;
-        mediaOutput = mMediaRecorder.setTcpOutPut("10.112.154.194", 8888, ssrc);
+        mediaOutput = mMediaRecorder.setUdpOutPut("10.210.100.76", 8888, ssrc);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());
         mMediaRecorder.prepare();

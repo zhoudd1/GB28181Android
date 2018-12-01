@@ -19,6 +19,7 @@ typedef struct UserArguments {
     int v_custom_format; //一些滤镜操作控制
     int a_frame_len;
     int ssrc;
+    int queue_max; //队列最大长度
     JNIEnv *env; //env全局指针
     JavaVM *javaVM; //jvm指针
     jclass java_class; //java接口类的calss对象

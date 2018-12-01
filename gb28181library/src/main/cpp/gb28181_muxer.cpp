@@ -171,9 +171,21 @@ void *GB28181Muxer::startEncode(void *obj) {
     avpicture_fill((AVPicture *) pNewFrame, buf, gb28181Muxer->pCodecCtx->pix_fmt, gb28181Muxer->pCodecCtx->width,
                    gb28181Muxer->pCodecCtx->height);
 
+    int skipNum = 10;
     while (!gb28181Muxer->is_end) {
+        uint8_t * new_buf;
+
+        //队列帧数过多直接跳过skipNum帧
+        if (gb28181Muxer->video_queue.size() > gb28181Muxer->arguments->queue_max) {
+            LOGW("[muxer][encode]queue is too big, clearing...")
+            for (int i = 0; i < skipNum; ++i) {
+                new_buf = *gb28181Muxer->video_queue.wait_and_pop();
+                delete new_buf;
+            }
+            continue;
+        }
         int64_t st = getCurrentTime();
-        uint8_t * new_buf = *gb28181Muxer->video_queue.wait_and_pop();
+        new_buf = *gb28181Muxer->video_queue.wait_and_pop();
         gb28181Muxer->custom_filter(gb28181Muxer, new_buf, pNewFrame);
         delete new_buf;
 
@@ -190,7 +202,7 @@ void *GB28181Muxer::startEncode(void *obj) {
             ret = avcodec_send_frame(gb28181Muxer->pCodecCtx, pNewFrame);
         }
         int64_t et2 = getCurrentTime();
-        LOGI("fetch raw frame from queue time：%lld (video frame queue left：%d)，in FFmpeg time：%lld.", et1 - st, gb28181Muxer->video_queue.size(), et2 - et1);
+        LOGI("[muxer][encode]fetch raw frame from queue time：%lld (video frame queue left：%d)，in FFmpeg time：%lld.", et1 - st, gb28181Muxer->video_queue.size(), et2 - et1);
         if (ret < 0) {
             LOGE("send FFmpeg error：%d.", ret);
         }

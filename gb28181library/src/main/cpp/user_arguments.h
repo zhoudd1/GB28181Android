@@ -7,7 +7,8 @@
 class JNIHandler;
 typedef struct UserArguments {
     char *ip_addr;
-    int port;
+    int remotePort;
+    int localPort;
     int outType;
     char *media_path; //合成后的MP4储存地址
     int in_width; //输出宽度

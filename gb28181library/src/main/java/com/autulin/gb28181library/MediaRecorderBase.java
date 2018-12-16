@@ -727,8 +727,8 @@ public abstract class MediaRecorderBase implements Callback, PreviewCallback, IM
         this.mFrameRateCmd= String.format(" -r %d",rate);
     }
 
-    public MediaOutput setTcpOutPut(String ip, int port, int ssrc) {
-        mediaOutput = new MediaOutput(ip, port, "", "", JNIBridge.TCP, ssrc);
+    public MediaOutput setTcpOutPut(String ip, int remotePort, int localPort, int ssrc) {
+        mediaOutput = new MediaOutput(ip, remotePort, localPort, "", "", JNIBridge.TCP, ssrc);
         return mediaOutput;
     }
 

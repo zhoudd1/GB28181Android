@@ -53,7 +53,8 @@ public class JNIBridge {
      */
     public static native int initMuxer(
             String ip,
-            int port,
+            int remotePort,
+            int localPort,
             int outType,
             String mediaBasePath,
             String mediaName,

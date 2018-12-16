@@ -46,7 +46,7 @@ private:
     struct sockaddr_in serveraddr;
     int serverlen;
 
-    int initSocket(char* hostname, int port);
+    int initSocket(char* hostname, int port, int localPort);
     ssize_t sendData(uint8_t * buf, int len);
     int closeSocket();
 

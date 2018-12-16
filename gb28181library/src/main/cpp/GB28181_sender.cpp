@@ -10,12 +10,12 @@ GB28181_sender::GB28181_sender(UserArguments *arg) : args(arg) {}
 int GB28181_sender::initSender() {
     switch (args->outType) {
         case 0: // udp
-            LOGE("ip:%s, port:%d, out_type:%d", args->ip_addr, args->port, args->outType);
-            initSocket(args->ip_addr, args->port);
+            LOGE("ip:%s, remotePort:%d, out_type:%d", args->ip_addr, args->remotePort, args->outType);
+            initSocket(args->ip_addr, args->remotePort, args->localPort);
             break;
         case 1: // tcp
-            LOGE("ip:%s, port:%d, out_type:%d", args->ip_addr, args->port, args->outType);
-            initSocket(args->ip_addr, args->port);
+            LOGE("ip:%s, remotePort:%d, localPort:%d out_type:%d", args->ip_addr, args->remotePort, args->localPort, args->outType);
+            initSocket(args->ip_addr, args->remotePort, args->localPort);
             break;
         case 2: // file
             //打开ps文件
@@ -108,7 +108,7 @@ int GB28181_sender::closeSender() {
     return n;
 }
 
-int GB28181_sender::initSocket(char *hostname, int port) {
+int GB28181_sender::initSocket(char *hostname, int port, int localPort) {
     switch (args->outType) {
         case 0: // udp
             sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -143,6 +143,18 @@ int GB28181_sender::initSocket(char *hostname, int port) {
     serverlen = sizeof(serveraddr);
 
     if (args->outType == 1) { // tcp
+        if (args->localPort != 0) {
+            struct sockaddr_in client_addr;
+            bzero((char *) &client_addr, sizeof(client_addr));
+            client_addr.sin_family = AF_INET;
+            client_addr.sin_addr.s_addr = INADDR_ANY;
+            client_addr.sin_port = htons(args->localPort);
+            int ret = bind(sockfd, (struct sockaddr *) &client_addr, sizeof(client_addr));
+            if ( ret < 0){
+                LOGE("ERROR local bind.(%d)", ret);
+                return ret;
+            }
+        }
         int ret = connect(sockfd, (const sockaddr *) &serveraddr, serverlen);
         if (ret < 0){
             LOGE("ERROR connect.(%d)", ret);

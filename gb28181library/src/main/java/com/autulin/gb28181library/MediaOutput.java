@@ -7,6 +7,7 @@ public class MediaOutput {
     private String outputName;
     private int outputType;
     private int ssrc;
+    private int localPort = 0;
 
     public MediaOutput(String ip, int port, String outputDir, String outputName, int outputType, int ssrc) {
         this.ip = ip;
@@ -15,6 +16,16 @@ public class MediaOutput {
         this.outputName = outputName;
         this.outputType = outputType;
         this.ssrc = ssrc;
+    }
+
+    public MediaOutput(String ip, int port, int localPort, String outputDir, String outputName, int outputType, int ssrc) {
+        this.ip = ip;
+        this.port = port;
+        this.outputDir = outputDir;
+        this.outputName = outputName;
+        this.outputType = outputType;
+        this.ssrc = ssrc;
+        this.localPort = localPort;
     }
 
     public String getIp() {
@@ -63,5 +74,13 @@ public class MediaOutput {
 
     public void setSsrc(int ssrc) {
         this.ssrc = ssrc;
+    }
+
+    public int getLocalPort() {
+        return localPort;
+    }
+
+    public void setLocalPort(int localPort) {
+        this.localPort = localPort;
     }
 }

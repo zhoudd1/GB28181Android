@@ -23,6 +23,7 @@ public class DemoActivity extends AppCompatActivity implements
 
     private Button mButton;
     private SurfaceView mSurfaceView;
+    private RelativeLayout bottomLayout;
 
     private MediaRecorderNative mMediaRecorder;
     private MediaOutput mediaOutput;
@@ -92,6 +93,7 @@ public class DemoActivity extends AppCompatActivity implements
     private void initView() {
         mButton = findViewById(R.id.start_btn);
         mSurfaceView = findViewById(R.id.record_preview);
+        bottomLayout = findViewById(R.id.bottom_lt);
     }
 
     /**
@@ -102,14 +104,15 @@ public class DemoActivity extends AppCompatActivity implements
 
         mMediaRecorder.setOnErrorListener(this);
         mMediaRecorder.setOnPreparedListener(this);
-//        mMediaRecorder.setCameraFront();
+//        mMediaRecorder.setCameraFront();   // 设置前置摄像头
 
         // 设置输出
 //        String fileName = String.valueOf(System.currentTimeMillis());
 //        String fileName = "tttttt";
 //        mediaOutput = mMediaRecorder.setFileOutPut(fileName);  //输出到文件，这里demo是/sdcard/pstest/tttttt.ps
         int ssrc = 1;
-        mediaOutput = mMediaRecorder.setUdpOutPut("10.210.100.76", 8888, ssrc);
+//        mediaOutput = mMediaRecorder.setUdpOutPut("10.210.100.69", 8888, ssrc);
+        mediaOutput = mMediaRecorder.setTcpOutPut("10.210.100.69", 8888,8088, ssrc);
 
         mMediaRecorder.setSurfaceHolder(mSurfaceView.getHolder());
         mMediaRecorder.prepare();
@@ -120,8 +123,10 @@ public class DemoActivity extends AppCompatActivity implements
      */
     private void initSurfaceView() {
         final int w = DeviceUtils.getScreenWidth(this);
+        // 避免摄像头的转换，只取上面h部分
+        ((RelativeLayout.LayoutParams)bottomLayout.getLayoutParams()).topMargin = (int) (w / (MediaRecorderBase.SMALL_VIDEO_HEIGHT / (MediaRecorderBase.SMALL_VIDEO_WIDTH * 1.0f)));
         int width = w;
-        int height = (int) (w * ((MediaRecorderBase.mSupportedPreviewWidth * 1.0f) / MediaRecorderBase.SMALL_VIDEO_HEIGHT));
+        int height = (int) (w * (MediaRecorderBase.mSupportedPreviewWidth * 1.0f)) / MediaRecorderBase.SMALL_VIDEO_HEIGHT;
         Log.e("debug", "initSurfaceView: w=" + width + ",h=" + height);
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) mSurfaceView
                 .getLayoutParams();

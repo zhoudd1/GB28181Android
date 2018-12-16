@@ -75,6 +75,7 @@ public class MediaRecorderNative extends MediaRecorderBase implements MediaRecor
         JNIBridge.initMuxer(
                 mediaOutput.getIp(),
                 mediaOutput.getPort(),
+                mediaOutput.getLocalPort(),
                 mediaOutput.getOutputType(),
                 mediaOutput.getOutputDir(),
                 mediaOutput.getOutputName(),

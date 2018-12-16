@@ -28,7 +28,7 @@ Java_com_autulin_gb28181library_JNIBridge_getFFmpegConfig(JNIEnv *env, jclass ty
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, jstring ip_,
-                                                    jint port, jint outType,
+                                                    jint remote_port, jint local_port, jint outType,
                                                     jstring mediaBasePath_, jstring mediaName_,
                                                     jint filter, jint in_width, jint in_height,
                                                     jint out_width, jint out_height, jint frameRate,
@@ -42,7 +42,8 @@ Java_com_autulin_gb28181library_JNIBridge_initMuxer(JNIEnv *env, jclass type, js
 
     arguments->ip_addr = (char *) malloc(strlen(ip) + 1);
     strcpy(arguments->ip_addr, ip);
-    arguments->port = port;
+    arguments->remotePort = remote_port;
+    arguments->localPort = local_port;
     arguments->outType = outType;
     arguments->ssrc = ssrc;
     arguments->queue_max = queue_max;

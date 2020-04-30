@@ -7,5 +7,3 @@ GB28181 for Android, include RTP/PS/H264/G711
 
 ffmpeg自带的example比这一堆臃肿的代码强多了。
 
-花了点业余时间整理了一整套系统
-https://www.cnblogs.com/dong1/p/11878456.html
